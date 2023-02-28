@@ -375,10 +375,52 @@ export const changeFieldEntityEditor = (e) => ({
   payload: { field: e.target.id, value: e.target.value }
 });
 
-export const changeFieldEntityEditorPriority = (e) => ({
-  type: 'CHANGE_FIELD_ENTITY_EDITOR_PRIORITY',
-  payload: { field: e.target.id, value: e.target.value }
-});
+export const changeFieldEntityEditorPriority = (e, accessToken, qualId, tetId) => { return dispatch => {
+  let method = 'PATCH';
+  let url = restUrl + '/topic_entity_tag_prop/' + qualId;
+  let payload = { "qualifier": e.target.value };
+  if (qualId === '') { 
+    method = 'POST';
+    url = restUrl + '/topic_entity_tag_prop/';
+    payload = { "qualifier": e.target.value, "topic_entity_tag_id": tetId };
+  }
+  let response_message = 'update success';
+// console.log('action ' + url + ' method ' + method);
+// console.log('payload');
+// console.log(payload);
+
+  axios({
+      url: url,
+      method: method,
+      headers: {
+        'content-type': 'application/json',
+        'mode': 'cors',
+        'authorization': 'Bearer ' + accessToken
+      },
+      data: payload
+  })
+  .then(res => {
+    console.log(res);
+    if ( ((method === 'PATCH') && (res.status !== 202)) ||
+         ((method === 'DELETE') && (res.status !== 204)) ||
+         ((method === 'POST') && (res.status !== 201)) ) {
+           response_message = 'error: ' + tetId + ' : API status code ' + res.status + ' for method ' + method; }
+    dispatch({
+      type: 'CHANGE_FIELD_ENTITY_EDITOR_PRIORITY',
+      payload: { field: e.target.id, value: e.target.value, qualId: qualId, tetId: tetId, responseMessage: response_message }
+    })
+  })
+  .catch(err =>
+    dispatch({
+      type: 'CHANGE_FIELD_ENTITY_EDITOR_PRIORITY',
+      payload: { field: e.target.id, value: e.target.value, qualId: qualId, tetId: tetId, responseMessage: 'error: changeFieldEntityEditorPriority failure on topic_entity_tag_id ' + tetId + ' topic_entity_tag_prop_id ' + qualId + ' ' + err }
+    }));
+
+//   return {
+//     type: 'CHANGE_FIELD_ENTITY_EDITOR_PRIORITY',
+//     payload: { field: e.target.id, value: e.target.value }
+//   }
+} };
 
 export const changeFieldEntityAddGeneralField = (e) => ({
   type: 'CHANGE_FIELD_ENTITY_ADD_GENERAL_FIELD',

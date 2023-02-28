@@ -167,9 +167,9 @@ const EntityEditor = () => {
                     <Col className="div-grey-border" sm="2">{entityName}</Col>
                     <Col className="div-grey-border" sm="2">{tetDict.alliance_entity}</Col>
 
-                    <Col sm="1">
+                    <Col sm="1">qid {qualifierId} qid
                       {/* changeFieldEntityEditorPriority changes which value to display, but does not update database. ideally this would update the databasewithout reloading referenceJsonLive, because API would return entities in a different order, so things would jump. but if creating a new qualifier where there wasn't any, there wouldn't be a tetpId until created, and it wouldn't be in the prop when changing again. could get the tetpId from the post and inject it, but it starts to get more complicated.  needs to display to patch existing tetp prop, or post to create a new one */}
-                      <Form.Control as="select" id={`qualifier ${index} ${qualifierIndex} ${qualifierId}`} type="tetqualifierSelect" disabled="disabled" value={qualifierValue} onChange={(e) => dispatch(changeFieldEntityEditorPriority(e))} >
+                      <Form.Control as="select" id={`qualifier ${index} ${qualifierIndex} ${qualifierId}`} type="tetqualifierSelect" value={qualifierValue} onChange={(e) => dispatch(changeFieldEntityEditorPriority(e, accessToken, qualifierId, tetDict.topic_entity_tag_id))} >
                         { qualifierList.map((optionValue, index) => (
                             <option key={`tetqualifierSelect ${optionValue}`} value={optionValue}>{curieToNameAtp[optionValue]}</option>
                         ))}
