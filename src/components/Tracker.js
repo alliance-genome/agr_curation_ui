@@ -42,6 +42,9 @@ const XrefElement = (xref) => {
 const TrackerPagination = (mod) => {
   const dispatch = useDispatch();
   const trackerPage = useSelector(state => state.tracker.trackerPage);
+  const orderBy = useSelector(state => state.tracker.orderBy);
+  const [downloading, setDownloading] = useState(false);
+
   const changePage = (action,page) => {
     switch (action){
       case 'Next':
@@ -56,14 +59,47 @@ const TrackerPagination = (mod) => {
     }
     dispatch(setTrackerPage(page));
     dispatch(searchMissingFiles(mod.mod))
-  }
+  };
+
+  const handleDownload = () => {
+    setDownloading(true);
+    let apiUrl = `${process.env.REACT_APP_RESTAPI}/reference/download_tracker_table/${mod.mod}?order_by=${orderBy}`;
+    fetch(apiUrl)
+      .then(response => response.blob())
+      .then(blob => {
+        const url = window.URL.createObjectURL(new Blob([blob]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${mod.mod}_missing_files.tsv`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        // window.URL.revokeObjectURL(url);
+	setDownloading(false);  
+      })
+      .catch(error => {
+        console.error('Error downloading file:', error);
+      });
+  };
+    
   return (
-    <Pagination style={{justifyContent: 'center', alignItems: 'center'}}>
-      {trackerPage === 1 ? <Pagination.Prev disabled/> : <Pagination.Prev   onClick={() => changePage('Prev',trackerPage)} /> }
-      <Pagination.Item  disabled>{"Page " + (trackerPage)}</Pagination.Item>
-      <Pagination.Next   onClick={() => changePage('Next',trackerPage)} />
-    </Pagination>
-  )
+    <div style={{ display: 'flex', alignItems: 'center' }}>
+      <div style={{ flex: '1', display: 'flex', justifyContent: 'center' }}>
+        <Pagination>
+          {trackerPage === 1 ? (
+            <Pagination.Prev disabled />
+          ) : (
+            <Pagination.Prev onClick={() => changePage('Prev', trackerPage)} />
+          )}
+          <Pagination.Item disabled>{"Page " + trackerPage}</Pagination.Item>
+          <Pagination.Next onClick={() => changePage('Next', trackerPage)} />
+        </Pagination>
+      </div>
+      <button onClick={handleDownload} style={{ marginLeft: '10px', border: '1px solid lightgray' }} disabled={downloading}>
+        {downloading ? 'Downloading...' : 'Download Table'}
+      </button>
+    </div>
+  );
 }
 
 const Tracker = () => {
