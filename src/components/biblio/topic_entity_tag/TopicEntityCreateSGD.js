@@ -10,7 +10,6 @@ import {
   getCuratorSourceId,
   setBiblioUpdatingEntityAdd,
   setEntityModalText,
-  // setTypeaheadName2CurieMap,
   updateButtonBiblioEntityAdd
 } from "../../../actions/biblioActions";
 import {
@@ -179,12 +178,20 @@ const TopicEntityCreateSGD = () => {
     }
   }, [accessLevel]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // const getMapKeyByValue = (mapObj, value) => {
-  //   const objEntries = Object.entries(mapObj);
-  //   const keyByValue = objEntries.filter((e) => e[1] === value);
-  //   return keyByValue.map((e) => e[0])[0];
-  // };
+  useEffect(() => {
+    resetForm();
+  }, [referenceJsonLive]);
 
+  const resetForm = () => {
+    dispatch(changeFieldEntityAddGeneralField({ target: { id: 'entityTypeSelect', value: "ATP:0000005" } }));
+    dispatch(changeFieldEntityAddGeneralField({ target: { id: 'entityResultList', value: [] } }));
+    dispatch(changeFieldEntityAddGeneralField({ target: { id: 'topicSelect', value: '' } }));
+    dispatch(changeFieldEntityAddGeneralField({ target: { id: 'entitytextarea', value: '' } }));
+    dispatch(changeFieldEntityAddGeneralField({ target: { id: 'notetextarea', value: '' } }));
+    dispatch(changeFieldEntityAddGeneralField({ target: { id: 'tetdisplayTagSelect', value: '' } }));  
+    console.log("entityResultList="+JSON.stringify(entityResultList));
+  };
+    
   function initializeUpdateJson(refCurie) {
     let updateJson = {};
     updateJson["reference_curie"] = refCurie;
