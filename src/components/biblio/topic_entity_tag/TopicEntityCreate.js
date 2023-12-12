@@ -123,6 +123,21 @@ const TopicEntityCreate = () => {
     return keyByValue.map(e => e[0])[0];
   }
 
+  useEffect(() => {
+    resetForm();
+  }, [referenceJsonLive]);
+
+  const resetForm = () => {
+    dispatch(changeFieldEntityAddGeneralField({ target: { id: 'entityTypeSelect', value: '' } }));
+    dispatch(changeFieldEntityAddGeneralField({ target: { id: 'entityResultList', value: [] } }));
+    dispatch(changeFieldEntityAddGeneralField({ target: { id: 'topicSelect', value: '' } }));
+    dispatch(changeFieldEntityAddGeneralField({ target: { id: 'entitytextarea', value: '' } }));  
+    dispatch(changeFieldEntityAddGeneralField({ target: { id: 'notetextarea', value: '' } }));
+    dispatch(changeFieldEntityAddGeneralField({ target: { id: 'noDataCheckbox', value: false } }));
+    dispatch(changeFieldEntityAddGeneralField({ target: { id: 'novelCheckbox', value: false } }));
+    console.log("entityResultList="+JSON.stringify(entityResultList));
+  };
+    
   function initializeUpdateJson(refCurie) {
     let updateJson = {};
     updateJson['reference_curie'] = refCurie;
