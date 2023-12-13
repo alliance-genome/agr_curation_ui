@@ -19,7 +19,7 @@ const defaultEntityAdd = {
   'entitytextarea': '',
   'notetextarea': '',
   'tetdisplayTagSelect': '',
-  'entityResultList': ''
+  'entityResultList': []
 }
 
 const defaultEntityAddSGD = {
@@ -29,7 +29,7 @@ const defaultEntityAddSGD = {
   'entitytextarea': '',
   'notetextarea': '',
   'tetdisplayTagSelect': '',
-  'entityResultList': ''
+  'entityResultList': []
 }
 
 const initialState = {
@@ -972,6 +972,7 @@ export default function(state = initialState, action) {
     case 'SET_REFERENCE_CURIE':
       console.log("reducer set reference curie, also clear store");
       // also clear store from the previous reference data
+      const setRefCurieDefaultEntityAdd = _.cloneDeep(defaultEntityAdd);
       return {
         ...state,
         isLoading: true,
@@ -979,6 +980,7 @@ export default function(state = initialState, action) {
         referenceJsonDb: {},
         referenceJsonHasChange: {},
         referenceCurie: action.payload,
+        entityAdd: setRefCurieDefaultEntityAdd,
 	tetPageSize: defaultTetPageSize,
         getReferenceCurieFlag: true
       }
