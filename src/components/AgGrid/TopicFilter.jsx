@@ -1,7 +1,7 @@
 import { useGridFilter } from 'ag-grid-react';
 import React, { useCallback, useEffect, useState } from 'react';
-import {useSelector} from "react-redux";
-
+import { useSelector } from 'react-redux';
+import Select from 'react-select';
 
 export default ({ model, onModelChange }) => {
     const [closeFilter, setCloseFilter] = useState();
@@ -26,16 +26,20 @@ export default ({ model, onModelChange }) => {
         setUnappliedModel(model);
     }, [model]);
 
-    const onTopicsChange = ({ target: { value,checked } } ) => {
+    const onTopicsChangeCheckbox = ({ target: { value, checked } }) => {
         let newModel = [];
         value = value === 'None' ? null : value;
-        if(checked){
+        if (checked) {
             newModel = unappliedModel ? unappliedModel.concat([value]) : [value];
+        } else {
+            newModel = unappliedModel.filter(f => f !== value);
         }
-        else{
-            newModel = unappliedModel.filter(f => f !== value)
-        }
-        setUnappliedModel(newModel.length===0 ? null : newModel);
+        setUnappliedModel(newModel.length === 0 ? null : newModel);
+    };
+
+    const onTopicsChangeTypeAhead = (selectedOptions) => {
+        const newModel = selectedOptions ? selectedOptions.map(option => option.value) : [];
+        setUnappliedModel(newModel.length === 0 ? null : newModel);
     };
 
     const onClick = () => {
@@ -48,13 +52,30 @@ export default ({ model, onModelChange }) => {
     return (
         <div className="custom-filter">
             <div>Select Topic</div><hr/>
-            {allTopics.map((topic) => {
-                let DisplayTopic = topic ? topic : 'None';
-                return  <div>
-                    <input type="checkbox" id={topic} value ={DisplayTopic} onChange={onTopicsChange}/>
-                    <label htmlFor={topic}> {DisplayTopic}</label>
-                </div>
-            })}
+            {allTopics.length <= 10 ? (
+                allTopics.map((topic) => {
+                    let DisplayTopic = topic ? topic : 'None';
+                    return (
+                        <div key={topic}>
+                            <input
+                                type="checkbox"
+                                id={topic}
+                                value={DisplayTopic}
+                                onChange={onTopicsChangeCheckbox}
+                                checked={unappliedModel && unappliedModel.includes(DisplayTopic)}
+                            />
+                            <label htmlFor={topic}> {DisplayTopic}</label>
+                        </div>
+                    );
+                })
+            ) : (
+                <Select
+                    isMulti
+                    options={allTopics.map(topic => ({ value: topic, label: topic }))}
+                    onChange={onTopicsChangeTypeAhead}
+                    value={unappliedModel ? unappliedModel.map(topic => ({ value: topic, label: topic })) : []}
+                />
+            )}
             <hr/><button onClick={onClick}>Apply</button>
         </div>
     );
