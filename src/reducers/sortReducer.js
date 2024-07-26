@@ -77,23 +77,22 @@ export default function(state = initialState, action) {
       console.log('reducer SORT_BUTTON_MODS_QUERY');
       // console.log(action.payload);
       for (let reference of action.payload) {
-        reference['workflow'] = 'experimental';
-        reference['existing_reference_workflow_tag_id_expt_meeting'] = '';	// parent term in ontology is called reference_type which is not clear
-        if ('workflow_tags' in reference && reference['workflow_tags'].length > 0) {
-          for (const workflowTag of reference['workflow_tags'].values()) {
-            // initialize radio button workflow values if workflow ATP has those
-            if (workflowTag.workflow_tag_id === 'ATP:0000103') {
-              reference['existing_reference_workflow_tag_id_expt_meeting'] = workflowTag.reference_workflow_tag_id;
-              reference['workflow'] = 'experimental'; }
-            else if (workflowTag.workflow_tag_id === 'ATP:0000104') {
-              reference['existing_reference_workflow_tag_id_expt_meeting'] = workflowTag.reference_workflow_tag_id;
-              reference['workflow'] = 'not_experimental'; }
-            else if (workflowTag.workflow_tag_id === 'ATP:0000106') {
-              reference['existing_reference_workflow_tag_id_expt_meeting'] = workflowTag.reference_workflow_tag_id;
-              reference['workflow'] = 'meeting'; }
+        reference['reftype'] = 'experimental';
+        reference['existing_reference_reftype_expt_meeting'] = '';	// parent term in ontology is called reference_type which is not clear
+        if ('reftype_tags' in reference && reference['reftype_tags'].length > 0) {
+          for (const reftypeTag of reference['reftype_tags'].values()) {
+            if (reftypeTag.reftype === 'Experimental') {
+              reference['existing_reference_reftype_expt_meeting'] = reftypeTag.reference_reftype;
+              reference['reftype'] = 'experimental'; }
+            else if (reftypeTag.reftype === 'Not_experimental') {
+              reference['existing_reference_reftype_expt_meeting'] = reftypeTag.reference_reftype;
+              reference['reftype'] = 'not_experimental'; }
+            else if (reftypeTag.reftype === 'Meeting_abstract') {
+              reference['existing_reference_reftype_expt_meeting'] = reftypeTag.reference_reftype;
+              reference['reftype'] = 'meeting'; }
         } }
 
-        if ('category' in reference && reference['category'] === 'review_article') { reference['workflow'] = 'not_experimental'; }
+        if ('category' in reference && reference['category'] === 'review_article') { reference['reftype'] = 'not_experimental'; }
 
       }
       // have to make copy of dictionary, otherwise deep elements in dictionary are the same and changing Live or Db change both copies
@@ -123,17 +122,17 @@ export default function(state = initialState, action) {
         referencesToSortLive: sortToggleCorpusReferencesToSortLive
       }
 
-    case 'CHANGE_SORT_WORKFLOW_TOGGLER':
-      console.log('reducer CHANGE_SORT_WORKFLOW_TOGGLER');
+    case 'CHANGE_SORT_REFTYPE_TOGGLER':
+      console.log('reducer CHANGE_SORT_REFTYPE_TOGGLER');
       console.log(action.payload);
-      let workflowArray = action.payload.split(" ");
-      let fieldWorkflowValue = workflowArray[0].replace(/_toggle$/, '');
-      let indexReferenceWorkflow = workflowArray[1];
-      let sortToggleWorkflowReferencesToSortLive = JSON.parse(JSON.stringify(state.referencesToSortLive))
-      sortToggleWorkflowReferencesToSortLive[indexReferenceWorkflow]['workflow'] = fieldWorkflowValue;
+      let reftypeArray = action.payload.split(" ");
+      let fieldReftypeValue = reftypeArray[0].replace(/_toggle$/, '');
+      let indexReferenceReftype = reftypeArray[1];
+      let sortToggleReftypeReferencesToSortLive = JSON.parse(JSON.stringify(state.referencesToSortLive))
+      sortToggleReftypeReferencesToSortLive[indexReferenceReftype]['reftype'] = fieldReftypeValue;
       return {
         ...state,
-        referencesToSortLive: sortToggleWorkflowReferencesToSortLive
+        referencesToSortLive: sortToggleReftypeReferencesToSortLive
       }
 
     case 'UPDATE_BUTTON_SORT':

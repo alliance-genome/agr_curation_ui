@@ -75,10 +75,10 @@ export const changeSortCorpusToggler = (e) => {
   };
 };
 
-export const changeSortWorkflowToggler = (e) => {
-  console.log('action change sort workflow toggler radio ' + e.target.id + ' to ' + e.target.value);
+export const changeSortReftypeToggler = (e) => {
+  console.log('action change sort reftypr toggler radio ' + e.target.id + ' to ' + e.target.value);
   return {
-    type: 'CHANGE_SORT_WORKFLOW_TOGGLER',
+    type: 'CHANGE_SORT_REFTYPE_TOGGLER',
     payload: e.target.id
   };
 };

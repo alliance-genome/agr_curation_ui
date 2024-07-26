@@ -19,7 +19,7 @@ import { changeFieldSortMods } from '../actions/sortActions';
 import { sortButtonModsQuery } from '../actions/sortActions';
 
 import { changeSortCorpusToggler } from '../actions/sortActions';
-import { changeSortWorkflowToggler } from '../actions/sortActions';
+import { changeSortReftypeToggler } from '../actions/sortActions';
 import { updateButtonSort } from '../actions/sortActions';
 import { closeSortUpdateAlert } from '../actions/sortActions';
 import { setSortUpdating } from '../actions/sortActions';
@@ -173,23 +173,18 @@ const Sort = () => {
         let array = [ subPath, updateJson, method, index, field, subField ]
         forApiArray.push( array );
         if (reference['mod_corpus_association_corpus'] === true) {
-          let workflowTagId = null;
-          if      (reference['workflow'] === 'experimental')     { workflowTagId = 'ATP:0000103'; }
-          else if (reference['workflow'] === 'not_experimental') { workflowTagId = 'ATP:0000104'; }
-          else if (reference['workflow'] === 'meeting')          { workflowTagId = 'ATP:0000106'; }
-          if (workflowTagId !== null) {
-            if (reference['existing_reference_workflow_tag_id_expt_meeting']) {
-              updateJson = { 'workflow_tag_id': workflowTagId }
-              subPath = 'workflow_tag/' + reference['existing_reference_workflow_tag_id_expt_meeting'];
-              method = 'PATCH';
-              let array = [ subPath, updateJson, method, index, field, subField]
-              forApiArray.push( array ); }
-            else {
-              updateJson = { 'workflow_tag_id': workflowTagId, 'mod_abbreviation': activeMod, 'reference_curie': reference['curie'] }
-              subPath = 'workflow_tag/'
+          let reftype = null;
+          if      (reference['reftype'] === 'experimental')     { reftype = 'Experimental'; }
+          else if (reference['reftype'] === 'not_experimental') { reftype = 'Not_experimental'; }
+          else if (reference['reftype'] === 'meeting')          { reftype = 'Meeting_abstract'; }
+          if (reftype !== null) {
+              updateJson = { 'reference_type': reftype, 'mod_abbreviation': activeMod, 'reference_curie': reference['curie'] }
+              subPath = 'reference/mod_reference_type/'
               method = 'POST';
               let array = [ subPath, updateJson, method, index, field, subField]
-              forApiArray.push( array ); }
+              forApiArray.push( array );
+	  }
+	  
           if (speciesSelect && speciesSelect[index]) {
             for ( const item of speciesSelect[index].values() ){
                 const taxArray = item.split(" ");
@@ -297,7 +292,7 @@ const Sort = () => {
           </Row>
           <RowDivider /> */}
           {referencesToSortLive.map((reference, index) => {
-            // console.log(reference);	// check previous workflow here
+            // console.log(reference);	// check previous reftype here
             const backgroundColor = (reference['prepublication_pipeline'] === true) ? '#f8d7da' : '';
             return (
             <div key={`reference div ${index}`} >
@@ -344,29 +339,29 @@ const Sort = () => {
                       <Form.Check
                           inline
                           disabled={ (reference['mod_corpus_association_corpus'] !== true) ? 'disabled' : '' }
-                          checked={ (reference['workflow'] === 'experimental') ? 'checked' : '' }
+                          checked={ (reference['reftype'] === 'experimental') ? 'checked' : '' }
                           type='radio'
                           label='expt'
                           id={`experimental_toggle ${index}`}
-                          onChange={(e) => dispatch(changeSortWorkflowToggler(e))}
+                          onChange={(e) => dispatch(changeSortReftypeToggler(e))}
                       /><br/>
                       <Form.Check
                           inline
                           disabled={ (reference['mod_corpus_association_corpus'] !== true) ? 'disabled' : '' }
-                          checked={ (reference['workflow'] === 'not_experimental') ? 'checked' : '' }
+                          checked={ (reference['reftype'] === 'not_experimental') ? 'checked' : '' }
                           type='radio'
                           label='not expt'
                           id={`not_experimental_toggle ${index}`}
-                          onChange={(e) => dispatch(changeSortWorkflowToggler(e))}
+                          onChange={(e) => dispatch(changeSortReftypeToggler(e))}
                       /><br/>
                       <Form.Check
                           inline
                           disabled={ (reference['mod_corpus_association_corpus'] !== true) ? 'disabled' : '' }
-                          checked={ (reference['workflow'] === 'meeting') ? 'checked' : '' }
+                          checked={ (reference['reftype'] === 'meeting') ? 'checked' : '' }
                           type='radio'
                           label='meeting'
                           id={`meeting_toggle ${index}`}
-                          onChange={(e) => dispatch(changeSortWorkflowToggler(e))}
+                          onChange={(e) => dispatch(changeSortReftypeToggler(e))}
                       /><br/>
                     </>
                   }
