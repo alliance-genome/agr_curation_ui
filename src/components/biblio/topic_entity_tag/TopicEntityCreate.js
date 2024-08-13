@@ -238,7 +238,22 @@ const TopicEntityCreate = () => {
       })));
     }
   }, [modToTaxon, accessLevel]);
+
+ 
+  useEffect(() => {
+     // ensure that species can be adjusted manually and prevent errors
+    setRows((prevRows) =>
+      prevRows.map((row) => {
+        const defaultTaxon = modToTaxon && modToTaxon[accessLevel] && modToTaxon[accessLevel][0] ? modToTaxon[accessLevel][0] : "";
+        return {
+          ...row,
+          taxonSelect: row.taxonSelect !== "" && row.taxonSelect !== undefined ? row.taxonSelect : defaultTaxon,
+        };
+      })
+    );
+  }, [rows, modToTaxon, accessLevel]);
   
+    
   useEffect(() => {
     if (tagExistingMessage) {
       setupEventListeners(existingTagResponses, accessToken, accessLevel, dispatch, updateButtonBiblioEntityAdd);
@@ -288,9 +303,10 @@ const TopicEntityCreate = () => {
   }
 
   const handleEntityValidation = useCallback(
-    debounce((index, value) => {
+     debounce((index, value) => {
+	console.log("calling handleEntityValidation...")
         setRows((prevRows) => {
-            const newRows = [...prevRows];
+            const newRows = [...prevRows]; // copy data
             const row = newRows[index];
             if (row.entityText === "") {
                 row.entityResultList = []; // reset entityResultList if entityText is empty
@@ -299,8 +315,7 @@ const TopicEntityCreate = () => {
                 row.taxonSelect !== undefined &&
                 row.entityTypeSelect !== ""
             ) {
-
-	        let entityIdValidation = 'alliance';
+                let entityIdValidation = row.taxonSelect === "use_wb" ? "wb" : "alliance";
                 // if (row.taxonSelect === "use_wb" && row.taxonSelectWB !== "" && row.taxonSelectWB !== undefined && row.entityTypeSelect !== "") {
                 //    entityIdValidation = 'wb';
 		//}
@@ -330,18 +345,18 @@ const TopicEntityCreate = () => {
   );
 
   const handleRowChange = (index, field, value) => {
-    console.log("handleRowChange triggered:", { index, field, value });
+    //console.log("handleRowChange triggered:", { index, field, value });
     setRows((prevRows) => {
       const newRows = [...prevRows];
       newRows[index] = { ...newRows[index], [field]: value };
 
       if (field === 'topicSelect') {
-	console.log("Topic selected:", value, 'Entity type list:', entityTypeList);
+	//console.log("Topic selected:", value, 'Entity type list:', entityTypeList);
         if (entityTypeList.includes(value)) {
-          console.log("Setting entityTypeSelect to:", value);
+          //console.log("Setting entityTypeSelect to:", value);
           newRows[index].entityTypeSelect = value;
         } else {
-	  console.log("Resetting entityTypeSelect");
+	  //console.log("Resetting entityTypeSelect");
           newRows[index].entityTypeSelect = "";
         }
       }
@@ -351,7 +366,7 @@ const TopicEntityCreate = () => {
       }
 
       // Validate the row when relevant fields change
-      if (field === 'entityText' || field === 'taxonSelect' || field === 'entityTypeSelect') {
+      if (['entityText', 'taxonSelect', 'entityTypeSelect'].includes(field)) {
         handleEntityValidation(index, value);
       }
       return newRows;
@@ -606,13 +621,35 @@ const TopicEntityCreate = () => {
               ))}
             </Form.Control>
           </Col>
-
-
-	    
           <Col sm="1">
-            <PulldownMenu id={`taxonSelect-${index}`} value={row.taxonSelect} pdList={taxonList} optionToName={curieToNameTaxon} />
+            <Form.Control
+              as="select"
+              id={`taxonSelect-${index}`}
+              type="taxonSelect"
+              value={row.taxonSelect}
+              onChange={(e) => handleRowChange(index, 'taxonSelect', e.target.value)}
+            >
+              {taxonList.map((option, idx) => (
+                <option key={idx} value={option}>
+                  {curieToNameTaxon[option]}
+                </option>
+              ))}
+            </Form.Control>
+	      	      
             {row.taxonSelect === "use_wb" && (
-              <PulldownMenu id={`taxonSelectWB-${index}`} value={row.taxonSelectWB} pdList={taxonListWB} optionToName={curieToNameTaxonWB} />
+	      <Form.Control
+                as="select"
+                id={`taxonSelectWB-${index}`}
+                type="taxonSelectWB"
+                value={row.taxonSelectWB}
+                onChange={(e) => handleRowChange(index, 'taxonSelectWB', e.target.value)}
+              >
+	        {taxonListWB.map((option, idx) => (
+                  <option key={idx} value={option}>
+                     {curieToNameTaxonWB[option]}   
+                  </option>
+		))}
+              </Form.Control>	
             )}
           </Col>
           <Col className="form-label col-form-label" sm="2">
