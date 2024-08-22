@@ -40,6 +40,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faExchangeAlt } from '@fortawesome/free-solid-svg-icons'
 import { faLock } from '@fortawesome/free-solid-svg-icons'
 import { faLockOpen } from '@fortawesome/free-solid-svg-icons'
+import { faQuestionCircle } from '@fortawesome/free-regular-svg-icons';
 // import { faLongArrowAltLeft } from '@fortawesome/free-solid-svg-icons'
 
 
@@ -1544,7 +1545,7 @@ const RowDisplayPairReferenceRelations = ({fieldName, referenceMeta1, referenceM
 const Merge = () => {
   return (
     <div>
-      <h4>Merge two References</h4>
+      <h4>Merge two References <a href="https://agr-jira.atlassian.net/wiki/spaces/LITERATURE/pages/564920321/Merge+Documentation" target="_blank"><FontAwesomeIcon icon={faQuestionCircle} style={{ width: '20px', height: '20px' }} /></a></h4>
       <MergeSelectionSection />
     </div>
   )
