@@ -131,14 +131,15 @@ const Workflow = () => {
     );
   }
 
-  const isMainPDFuploaded = modFileStatus[oktaMod]['atpName'] === 'files uploaded';
+  // currently we can only transition from "file upload in progress" to "file unavailable"
+  const isMainPDFuploaded = modFileStatus[accessLevel]['atpName'] === 'files uploaded';
   const isDeveloperWithoutTester = oktaMod === 'developer' && testerMod === 'No';
-  const hideFileUnavailableButton = isMainPDFuploaded || isDeveloperWithoutTester;
-    
+  const hideFileUnavailableButton = isMainPDFuploaded || isDeveloperWithoutTester || modFileStatus[accessLevel]['atpName'] !== 'file upload in progress';
+  
   const handleFileUnavailableClick = () => {
     let url =
       process.env.REACT_APP_RESTAPI +
-      '/workflow_tag/transition_to_workflow_status/';
+      '/workflow_tag/transition_to_workflow_status';
     let postData = {
       curie_or_reference_id: referenceCurie,
       mod_abbreviation: accessLevel,
@@ -146,7 +147,7 @@ const Workflow = () => {
       transition_type: 'manual',
     };
     axios
-      .patch(url, postData, {
+      .post(url, postData, {
         headers: {
           Authorization: 'Bearer ' + accessToken,
           mode: 'cors',
