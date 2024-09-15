@@ -589,21 +589,24 @@ export const changeFieldEntityEntityList = (entityText, accessToken, entityIdVal
         }
       }
       let entityResultList = [];
+      let foundEntity = false;	
       for (const entityTypeSymbol of entityInputList) {
         if (entityTypeSymbol.toLowerCase() in searchMap) {
           entityResultList.push({
             'entityTypeSymbol': entityTypeSymbol,
             'curie': searchMap[entityTypeSymbol.toLowerCase()]
           });
+	  foundEntity = true;
         } else if (entityTypeSymbol.toLowerCase() in obsoleteMap) {
           entityResultList.push({ 'entityTypeSymbol': entityTypeSymbol, 'curie': 'obsolete entity' });
+	  foundEntity = true;
         } else {
           entityResultList.push({ 'entityTypeSymbol': entityTypeSymbol, 'curie': 'no Alliance curie' });
         }
       }
 
       // if no mapping or empty result, check entityIdValidation for 'sgd'
-      if (entityResultList.length === 0 && entityIdValidation === 'sgd') {
+      if (foundEntity === false && entityIdValidation === 'sgd') {
         return sgd_entity_validation(dispatch, entityType, entityInputList, callback);
       }	
 	
