@@ -1,11 +1,7 @@
 // import history from "../history";
-
 // import notGithubVariables from './notGithubVariables';
-
+import axios from 'axios';
 const restUrl = process.env.REACT_APP_RESTAPI;
-// const restUrl = 'stage-literature-rest.alliancegenome.org';
-// const port = 11223;
-// const port = 49161;
 
 export const changeFieldSortMods = (e) => {
   console.log('action change field ' + e.target.name + ' to ' + e.target.value);
@@ -18,57 +14,76 @@ export const changeFieldSortMods = (e) => {
   };
 };
 
-export const sortButtonModsQuery = (mod, sortType) => dispatch => {
+export const sortButtonModsQuery = (mod, sortType, curator = null, action = null) => dispatch => {
+  // Dispatch actions to set loading state and update sort type
   dispatch({
     type: 'SORT_SET_IS_LOADING',
     payload: true
   });
+  
   dispatch({
     type: 'CHANGE_FIELD_SORT_TYPE',
     payload: sortType
   });
   console.log('in sortButtonModsQuery action');
-  // console.log("payload " + payload);
-  // https://dev4004-literature-rest.alliancegenome.org/sort/need_review?mod_abbreviation=RGD&count=2
   if (mod === 'No') {
-      return
-  }
-  const sortGetModsQuery = async () => {
-    const url = (sortType === 'needs_review') ? 
-                restUrl + '/sort/need_review?count=20&mod_abbreviation=' + mod :
-                restUrl + '/sort/prepublication_pipeline?count=20&mod_abbreviation=' + mod;
-    // console.log(url);
-    const res = await fetch(url, {
-      method: 'GET',
-      mode: 'cors',
-      headers: {
-        'content-type': 'application/json'
-      }
-    })
-    const response = await res.json();
-    // console.log(response);
-    let response_payload = mod + ' not found';
-    let response_found = 'not found';
-    if (response !== undefined) {
-      // console.log('response not undefined');
-      response_found = 'found';
-      response_payload = response;
-    }
-    // need dispatch because "Actions must be plain objects. Use custom middleware for async actions."
-    console.log('dispatch QUERY_BUTTON');
-    dispatch({
-      type: 'SORT_BUTTON_MODS_QUERY',
-      payload: response_payload,
-      responseFound: response_found
-    });
     dispatch({
       type: 'SORT_SET_IS_LOADING',
       payload: false
     });
+    return;
   }
-  sortGetModsQuery()
-};
 
+  const sortGetModsQuery = async () => {
+    try {
+      const url = (sortType === 'needs_review') ?
+        `${restUrl}/sort/need_review?count=20&mod_abbreviation=${encodeURIComponent(mod)}&curator=${encodeURIComponent(curator)}&action=${encodeURIComponent(action)}` :
+        `${restUrl}/sort/prepublication_pipeline?count=20&mod_abbreviation=${encodeURIComponent(mod)}`;
+      console.log(`Fetching sorted papers from URL: ${url}`);
+      const res = await fetch(url, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Network response was not ok: ${res.statusText}`);
+      }
+      const response = await res.json();
+      let response_payload = `${mod} not found`;
+      let response_found = 'not found';
+      
+      if (response !== undefined && response !== null) {
+        response_found = 'found';
+        response_payload = response;
+      }
+      
+      console.log('Dispatching SORT_BUTTON_MODS_QUERY');
+      dispatch({
+        type: 'SORT_BUTTON_MODS_QUERY',
+        payload: response_payload,
+        responseFound: response_found
+      });
+    } catch (error) {
+      console.error('Error in sortButtonModsQuery:', error);
+      
+      // Dispatch failure action if needed
+      dispatch({
+        type: 'SORT_BUTTON_MODS_QUERY_FAILURE',
+        payload: error.message || 'Failed to fetch sorted papers'
+      });
+    } finally {
+      // Reset loading state
+      dispatch({
+        type: 'SORT_SET_IS_LOADING',
+        payload: false
+      });
+    }
+  };  
+  // Invoke the async function
+  sortGetModsQuery();
+};
 
 export const changeSortCorpusToggler = (e) => {
   console.log('action change sort corpus toggler radio ' + e.target.id + ' to ' + e.target.value);
