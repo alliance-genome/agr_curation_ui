@@ -8,7 +8,6 @@ import {
     updateButtonSort,
     closeSortUpdateAlert,
     setSortUpdating,
-    claimPapers // Import the new action
 } from '../actions/sortActions';
 import { setReferenceCurie, setGetReferenceCurieFlag, getCuratorSourceId } from '../actions/biblioActions';
 import { Spinner, Form, Container, Row, Col, Button, Alert } from 'react-bootstrap';
@@ -205,18 +204,22 @@ const Sort = () => {
     }
   }
 
-  // New Handler for 'Claim Papers' button
+  // Handler for 'Claim Papers' button
   const handleClaimPapers = () => {
-    if (!accessToken) {
-      console.error('Access token is missing. Cannot claim papers.');
-      return;
-    }
     if (!userId) {
       console.error('User ID is missing. Cannot claim papers.');
       return;
     }
+    dispatch(sortButtonModsQuery(accessLevel, 'needs_review', userId, 'claim'));
+  }
 
-    dispatch(claimPapers(accessToken, userId, accessLevel));
+  // Handler for 'Unclaim Papers' button
+  const handleUnclaimPapers = () => {
+    if (!userId) {
+      console.error('User ID is missing. Cannot unclaim papers.');
+      return;
+    }
+    dispatch(sortButtonModsQuery(accessLevel, 'needs_review', userId, 'unclaim'));
   }
 
   // Extract unique claimer emails from referencesToSortLive
@@ -333,13 +336,13 @@ const Sort = () => {
                               {claimer}
                             </option>
                           ))}
-			  <option value="unclaimed">Unclaimed Papers</option> 
+                          <option value="unclaimed">Unclaimed Papers</option> 
                         </Form.Control>
                       </Form.Group>
                     )}
                   </div>
                   <div>
-                    {/* "Update Sorting" and "Claim Papers" Buttons */}
+                    {/* "Update Sorting" and "Claim/Unclaim Papers" Buttons */}
                     <SortSubmitUpdateRouter />
                     <Button
                       as="input"
@@ -349,9 +352,18 @@ const Sort = () => {
                       value="Update Sorting"
                       onClick={() => updateSorting()}
                     />{' '}
-                    {!hasUserClaimed() && (
+                    {hasUserClaimed() ? (
                       <Button
-                        style={{ backgroundColor: '#28a745', color: 'white', border: 'none', width: '200px', marginLeft: '10px' }} // Set width and margin
+                        style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', width: '200px', marginLeft: '10px' }} // Red color for unclaim
+                        type="button"
+                        disabled={claimingPapers}
+                        onClick={handleUnclaimPapers}
+                      >
+                        {claimingPapers ? 'Unclaiming...' : 'Unclaim Papers'}
+                      </Button>
+                    ) : (
+                      <Button
+                        style={{ backgroundColor: '#28a745', color: 'white', border: 'none', width: '200px', marginLeft: '10px' }} // Green color for claim
                         type="button"
                         disabled={claimingPapers}
                         onClick={handleClaimPapers}
@@ -402,9 +414,18 @@ const Sort = () => {
                       value="Update Sorting"
                       onClick={() => updateSorting()}
                     />{' '}
-                    {!hasUserClaimed() && (
+                    {hasUserClaimed() ? (
                       <Button
-                        style={{ backgroundColor: '#28a745', color: 'white', border: 'none', width: '200px', marginLeft: '10px' }} // Set width and margin
+                        style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', width: '200px', marginLeft: '10px' }}
+                        type="button"
+                        disabled={claimingPapers}
+                        onClick={handleUnclaimPapers}
+                      >
+                        {claimingPapers ? 'Unclaiming...' : 'Unclaim Papers'}
+                      </Button>
+                    ) : (
+                      <Button
+                        style={{ backgroundColor: '#28a745', color: 'white', border: 'none', width: '200px', marginLeft: '10px' }}
                         type="button"
                         disabled={claimingPapers}
                         onClick={handleClaimPapers}
@@ -515,10 +536,10 @@ const Sort = () => {
         }
       </Container>
       
-      {/* Display claim papers error if any */}
+      {/* Display claim/unclaim papers error if any */}
       {claimPapersError && (
         <Alert variant="danger">
-          <Alert.Heading>Claim Papers Failed</Alert.Heading>
+          <Alert.Heading>{hasUserClaimed() ? 'Unclaim Papers Failed' : 'Claim Papers Failed'}</Alert.Heading>
           <p>{claimPapersError}</p>
         </Alert>
       )}
