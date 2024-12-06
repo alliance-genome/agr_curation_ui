@@ -7,7 +7,8 @@ import {
     changeSortWorkflowToggler,
     updateButtonSort,
     closeSortUpdateAlert,
-    setSortUpdating
+    setSortUpdating,
+    claimPapers // Import the new action
 } from '../actions/sortActions';
 import { setReferenceCurie, setGetReferenceCurieFlag, getCuratorSourceId } from '../actions/biblioActions';
 import { Spinner, Form, Container, Row, Col, Button, Alert } from 'react-bootstrap';
@@ -33,6 +34,10 @@ const Sort = () => {
   const uid = useSelector(state => state.isLogged.uid);
   const userId = useSelector(state => state.isLogged.userId);
 
+  // New selectors for claim papers
+  const claimingPapers = useSelector(state => state.sort.claimingPapers);
+  const claimPapersError = useSelector(state => state.sort.claimPapersError);
+
   const dispatch = useDispatch();
 
   const [speciesSelectLoading, setSpeciesSelectLoading] = useState([]);
@@ -42,7 +47,7 @@ const Sort = () => {
   const [topicEntitySourceId, setTopicEntitySourceId] = useState(undefined);
 
   const [viewMode, setViewMode] = useState('Sort'); // 'Sort', 'Prepublication', or 'Recently sorted'
-  const [selectedCurator, setSelectedCurator] = useState(uid);
+  const [selectedCurator, setSelectedCurator] = useState('unclaimed'); // Default to 'unclaimed'
   const [selectedTimeframe, setSelectedTimeframe] = useState('1');
   const [curatorOptions, setCuratorOptions] = useState([]);
   const [recentlySortedData, setRecentlySortedData] = useState([]);
@@ -114,12 +119,8 @@ const Sort = () => {
         setCuratorOptions(curators);
         setRecentlySortedData(references);
 
-        if (!curators.some(curator => curator.uid === selectedCurator)) {
-          if (curators.length > 0) {
-            setSelectedCurator(curators[0].uid);
-          } else {
-            setSelectedCurator('');
-          }
+        if (!curators.some(curator => curator.uid === selectedCurator) && references.some(ref => ref.claimed_by === null)) {
+          setSelectedCurator('unclaimed');
         }
       })
       .catch(error => {
@@ -132,9 +133,9 @@ const Sort = () => {
     let curator = selectedCurator;
     console.log(`Selected Curator Before Check: ${curator}`);
     if (curator === null || curator === undefined) {
-      curator = uid;
-      console.log("Reset curator to uid:", curator);
-      setSelectedCurator(uid); // Update state for future use
+      curator = 'unclaimed';
+      console.log("Reset curator to 'unclaimed':", curator);
+      setSelectedCurator('unclaimed'); // Update state for future use
     }
     console.log(`Fetching papers with curator: ${curator}`);
     fetchRecentlySortedPapers(accessLevel, selectedTimeframe, curator);
@@ -204,6 +205,48 @@ const Sort = () => {
     }
   }
 
+  // New Handler for 'Claim Papers' button
+  const handleClaimPapers = () => {
+    if (!accessToken) {
+      console.error('Access token is missing. Cannot claim papers.');
+      return;
+    }
+    if (!userId) {
+      console.error('User ID is missing. Cannot claim papers.');
+      return;
+    }
+
+    dispatch(claimPapers(accessToken, userId, accessLevel));
+  }
+
+  // Extract unique claimer emails from referencesToSortLive
+  const getUniqueClaimers = () => {
+    if (!referencesToSortLive) return [];
+    const claimersSet = new Set();
+    referencesToSortLive.forEach(ref => {
+      if (ref.claimed_by) {
+        claimersSet.add(ref.claimed_by);
+      }
+    });
+    return Array.from(claimersSet);
+  }
+
+  // Determine if the current user has already claimed any papers
+  const hasUserClaimed = () => {
+    if (!referencesToSortLive) return false;
+    return referencesToSortLive.some(ref => ref.claimed_by === userId);
+  }
+
+  // Filter papers based on selected curator
+  const filteredPapers = () => {
+    if (!referencesToSortLive) return [];
+    if (selectedCurator === 'unclaimed') {
+      return referencesToSortLive.filter(ref => ref.claimed_by === null);
+    } else {
+      return referencesToSortLive.filter(ref => ref.claimed_by === selectedCurator);
+    }
+  }
+
   return (
     <div>
       <h3>References for {accessLevel}</h3>
@@ -265,16 +308,48 @@ const Sort = () => {
             <RowDivider />
             {referencesToSortLive && referencesToSortLive.length > 0 &&
               <Row>
-                <Col lg={12} className="text-center">
-                  <SortSubmitUpdateRouter />
-                  <Button
-                    as="input"
-                    style={{ backgroundColor: '#6b9ef3', color: 'white', border: 'none', width: '200px' }} // Set width
-                    type="button"
-                    disabled={buttonUpdateDisabled}
-                    value="Update Sorting"
-                    onClick={() => updateSorting()}
-                  />{' '}
+                <Col lg={12} className="d-flex justify-content-between align-items-center">
+                  <div>
+                    {/* New Dropdown for Claimers */}
+                    <Form.Group controlId="formClaimerSelect" className="mb-0">
+                      <Form.Label style={{ fontWeight: 'bold' }}>Show Papers Claimed By:</Form.Label>
+                      <Form.Control
+                        as="select"
+                        style={{ minWidth: '200px' }}
+                        value={selectedCurator}
+                        onChange={(e) => setSelectedCurator(e.target.value)}
+                      >
+                        <option value="unclaimed">Unclaimed Papers</option>
+                        {getUniqueClaimers().map((claimer, index) => (
+                          <option key={index} value={claimer}>
+                            {claimer}
+                          </option>
+                        ))}
+                      </Form.Control>
+                    </Form.Group>
+                  </div>
+                  <div>
+                    {/* "Update Sorting" and "Claim Papers" Buttons */}
+                    <SortSubmitUpdateRouter />
+                    <Button
+                      as="input"
+                      style={{ backgroundColor: '#6b9ef3', color: 'white', border: 'none', width: '200px' }} // Set width
+                      type="button"
+                      disabled={buttonUpdateDisabled}
+                      value="Update Sorting"
+                      onClick={() => updateSorting()}
+                    />{' '}
+                    {!hasUserClaimed() && (
+                      <Button
+                        style={{ backgroundColor: '#28a745', color: 'white', border: 'none', width: '200px', marginLeft: '10px' }} // Set width and margin
+                        type="button"
+                        disabled={claimingPapers}
+                        onClick={handleClaimPapers}
+                      >
+                        {claimingPapers ? 'Claiming...' : 'Claim Papers'}
+                      </Button>
+                    )}
+                  </div>
                 </Col>
               </Row>
             }
@@ -287,7 +362,7 @@ const Sort = () => {
             {referencesToSortLive && referencesToSortLive.length > 0 && (
               <Container fluid>
                 <RowDivider />
-                {referencesToSortLive.map((reference, index) => (
+                {filteredPapers().map((reference, index) => (
                   <ReferencesToSort
                     key={`reference div ${index}`}
                     reference={reference}
@@ -306,17 +381,29 @@ const Sort = () => {
                   />
                 ))}
                 <RowDivider />
-                <Row><Col>
-                  <SortSubmitUpdateRouter />
-                  <Button
-                    as="input"
-                    style={{ backgroundColor: '#6b9ef3', color: 'white', border: 'none', width: '200px' }} // Set width
-                    type="button"
-                    disabled={buttonUpdateDisabled}
-                    value="Update Sorting"
-                    onClick={() => updateSorting()}
-                  />{' '}
-                </Col></Row>
+                <Row>
+                  <Col lg={12} className="text-center">
+                    <SortSubmitUpdateRouter />
+                    <Button
+                      as="input"
+                      style={{ backgroundColor: '#6b9ef3', color: 'white', border: 'none', width: '200px' }} // Set width
+                      type="button"
+                      disabled={buttonUpdateDisabled}
+                      value="Update Sorting"
+                      onClick={() => updateSorting()}
+                    />{' '}
+                    {!hasUserClaimed() && (
+                      <Button
+                        style={{ backgroundColor: '#28a745', color: 'white', border: 'none', width: '200px', marginLeft: '10px' }} // Set width and margin
+                        type="button"
+                        disabled={claimingPapers}
+                        onClick={handleClaimPapers}
+                      >
+                        {claimingPapers ? 'Claiming...' : 'Claim Papers'}
+                      </Button>
+                    )}
+                  </Col>
+                </Row>
               </Container>
             )}
           </>
@@ -417,6 +504,15 @@ const Sort = () => {
           </>
         }
       </Container>
+      
+      {/* Display claim papers error if any */}
+      {claimPapersError && (
+        <Alert variant="danger">
+          <Alert.Heading>Claim Papers Failed</Alert.Heading>
+          <p>{claimPapersError}</p>
+        </Alert>
+      )}
+
       <AlertAteamApiDown />
       <hr />
     </div>
