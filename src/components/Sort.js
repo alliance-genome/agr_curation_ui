@@ -33,7 +33,7 @@ const Sort = () => {
   const uid = useSelector(state => state.isLogged.uid);
   const userId = useSelector(state => state.isLogged.userId);
 
-  // New selectors for claim papers
+  // Selectors for claim papers
   const claimingPapers = useSelector(state => state.sort.claimingPapers);
   const claimPapersError = useSelector(state => state.sort.claimPapersError);
 
@@ -91,40 +91,45 @@ const Sort = () => {
     }
   }, [viewMode, accessToken, accessLevel, selectedTimeframe, selectedCurator]);
 
-  const fetchRecentlySortedPapers = (modAbbreviation, day, curatorUid) => {
-    const url = `${process.env.REACT_APP_RESTAPI}/sort/recently_sorted?mod_abbreviation=${modAbbreviation}&day=${day}&curator=${curatorUid}`;
+  const fetchRecentlySortedPapers = async (modAbbreviation, day, curatorUid) => {
+    const url = `${process.env.REACT_APP_RESTAPI}/sort/recently_sorted?mod_abbreviation=${encodeURIComponent(modAbbreviation)}&day=${encodeURIComponent(day)}&curator=${encodeURIComponent(curatorUid)}`;
 
-    fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-    })
-      .then(response => response.json())
-      .then(data => {
-        const { curator_data, data: references } = data;
-        let curators = Object.entries(curator_data).map(([email, uid]) => ({ email, uid }));
-        const loggedInUserUid = uid;
-        const loggedInUserIncluded = curators.some(curator => curator.uid === loggedInUserUid);
-
-        if (loggedInUserIncluded) {
-          const index = curators.findIndex(curator => curator.uid === loggedInUserUid);
-          if (index > 0) {
-            const [loggedInUser] = curators.splice(index, 1);
-            curators.unshift(loggedInUser);
-          }
-        }
-
-        setCuratorOptions(curators);
-        setRecentlySortedData(references);
-
-        if (!curators.some(curator => curator.uid === selectedCurator) && references.some(ref => ref.claimed_by === null)) {
-          setSelectedCurator('unclaimed');
-        }
-      })
-      .catch(error => {
-        console.error('Error fetching recently sorted papers:', error);
+    try {
+      const res = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
       });
+
+      if (!res.ok) {
+        throw new Error(`Network response was not ok: ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      const { curator_data, data: references } = data;
+
+      let curators = Object.entries(curator_data).map(([email, uid]) => ({ email, uid }));
+      const loggedInUserUid = uid;
+      const loggedInUserIncluded = curators.some(curator => curator.uid === loggedInUserUid);
+
+      if (loggedInUserIncluded) {
+        const index = curators.findIndex(curator => curator.uid === loggedInUserUid);
+        if (index > 0) {
+          const [loggedInUser] = curators.splice(index, 1);
+          curators.unshift(loggedInUser);
+        }
+      }
+
+      setCuratorOptions(curators);
+      setRecentlySortedData(references);
+
+      if (!curators.some(curator => curator.uid === selectedCurator) && references.some(ref => ref.claimed_by === null)) {
+        setSelectedCurator('unclaimed');
+      }
+    } catch (error) {
+      console.error('Error fetching recently sorted papers:', error);
+    }
   };
 
   // Handler for 'Find sorted papers' button
@@ -205,24 +210,48 @@ const Sort = () => {
   }
 
   // Handler for 'Claim Papers' button
-  const handleClaimPapers = () => {
+  const handleClaimPapers = async () => {
     if (!userId) {
       console.error('User ID is missing. Cannot claim papers.');
       return;
     }
-    dispatch(sortButtonModsQuery(accessLevel, 'needs_review', userId, 'claim'));
+    try {
+      // Dispatch the claim action
+      await dispatch(sortButtonModsQuery(accessLevel, 'needs_review', userId, 'claim'));
+      
+      // Fetch the updated list of claimed papers
+      await dispatch(sortButtonModsQuery(accessLevel, 'needs_review', userId, null));
+      
+      // Set the selectedCurator to userId to display user's claimed papers
+      setSelectedCurator(userId);
+      
+    } catch (error) {
+      console.error('Error claiming papers:', error);
+    }
   }
 
   // Handler for 'Unclaim Papers' button
-  const handleUnclaimPapers = () => {
+  const handleUnclaimPapers = async () => {
     if (!userId) {
       console.error('User ID is missing. Cannot unclaim papers.');
       return;
     }
-    dispatch(sortButtonModsQuery(accessLevel, 'needs_review', userId, 'unclaim'));
+    try {
+      // Dispatch the unclaim action
+      await dispatch(sortButtonModsQuery(accessLevel, 'needs_review', userId, 'unclaim'));
+      
+      // Fetch the updated list of unclaimed papers
+      await dispatch(sortButtonModsQuery(accessLevel, 'needs_review', 'unclaimed', null));
+      
+      // Set the selectedCurator to 'unclaimed' to display unclaimed papers
+      setSelectedCurator('unclaimed');
+      
+    } catch (error) {
+      console.error('Error unclaiming papers:', error);
+    }
   }
 
-  // Extract unique claimer emails from referencesToSortLive
+  // Extract unique claimer IDs from referencesToSortLive
   const getUniqueClaimers = () => {
     if (!referencesToSortLive) return [];
 
@@ -318,35 +347,40 @@ const Sort = () => {
           <>
             <RowDivider />
             {referencesToSortLive && referencesToSortLive.length > 0 &&
-              <Row>
-                <Col lg={12} className="d-flex justify-content-between align-items-center">
-                  <div>
-                    {/* Conditionally render the dropdown only if there are claimed papers */}
-                    {getUniqueClaimers().length > 0 && (
-                      <Form.Group controlId="formClaimerSelect" className="mb-0">
-                        <Form.Label style={{ fontWeight: 'bold' }}>Show Papers Claimed By:</Form.Label>
-                        <Form.Control
-                          as="select"
-                          style={{ minWidth: '200px' }}
-                          value={selectedCurator}
-                          onChange={(e) => setSelectedCurator(e.target.value)}
-                        >
-                          {getUniqueClaimers().map((claimer, index) => (
-                            <option key={index} value={claimer}>
-                              {claimer}
-                            </option>
-                          ))}
-                          <option value="unclaimed">Unclaimed Papers</option> 
-                        </Form.Control>
-                      </Form.Group>
-                    )}
-                  </div>
-                  <div>
+              <>
+                <Row>
+
+  <Col lg={3} md={4} sm={6} className="mx-auto"> {/* Center the column and set responsive widths */}
+    {/* Dropdown for selecting claimer */}
+    {getUniqueClaimers().length > 0 && (
+      <Form.Group controlId="formClaimerSelect" className="mb-3">
+        <Form.Label style={{ fontWeight: 'bold' }}>Show Papers Claimed By:</Form.Label>
+        <Form.Control
+          as="select"
+          value={selectedCurator}
+          onChange={(e) => setSelectedCurator(e.target.value)}
+          style={{ width: '100%' }} // Make the select take full width of the column
+        >
+          {getUniqueClaimers().map((claimer, index) => (
+            <option key={index} value={claimer}>
+              {claimer}
+            </option>
+          ))}
+          <option value="unclaimed">Unclaimed Papers</option> 
+        </Form.Control>
+      </Form.Group>
+    )}
+  </Col>
+
+		      
+                </Row>
+                <Row>
+                  <Col lg={12} className="d-flex justify-content-center align-items-center">
                     {/* "Update Sorting" and "Claim/Unclaim Papers" Buttons */}
                     <SortSubmitUpdateRouter />
                     <Button
                       as="input"
-                      style={{ backgroundColor: '#6b9ef3', color: 'white', border: 'none', width: '200px' }} // Set width
+                      style={{ backgroundColor: '#6b9ef3', color: 'white', border: 'none', width: '200px', marginRight: '10px' }} // Set width and margin
                       type="button"
                       disabled={buttonUpdateDisabled}
                       value="Update Sorting"
@@ -354,7 +388,7 @@ const Sort = () => {
                     />{' '}
                     {hasUserClaimed() ? (
                       <Button
-                        style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', width: '200px', marginLeft: '10px' }} // Red color for unclaim
+                        style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', width: '200px' }} // Red color for unclaim
                         type="button"
                         disabled={claimingPapers}
                         onClick={handleUnclaimPapers}
@@ -363,7 +397,7 @@ const Sort = () => {
                       </Button>
                     ) : (
                       <Button
-                        style={{ backgroundColor: '#28a745', color: 'white', border: 'none', width: '200px', marginLeft: '10px' }} // Green color for claim
+                        style={{ backgroundColor: '#28a745', color: 'white', border: 'none', width: '200px' }} // Green color for claim
                         type="button"
                         disabled={claimingPapers}
                         onClick={handleClaimPapers}
@@ -371,9 +405,9 @@ const Sort = () => {
                         {claimingPapers ? 'Claiming...' : 'Claim Papers'}
                       </Button>
                     )}
-                  </div>
-                </Col>
-              </Row>
+                  </Col>
+                </Row>
+              </>
             }
             {referencesToSortLive && referencesToSortLive.length === 0 && (
               <div>
@@ -408,7 +442,7 @@ const Sort = () => {
                     <SortSubmitUpdateRouter />
                     <Button
                       as="input"
-                      style={{ backgroundColor: '#6b9ef3', color: 'white', border: 'none', width: '200px' }} // Set width
+                      style={{ backgroundColor: '#6b9ef3', color: 'white', border: 'none', width: '200px', marginRight: '10px' }} // Set width and margin
                       type="button"
                       disabled={buttonUpdateDisabled}
                       value="Update Sorting"
@@ -416,7 +450,7 @@ const Sort = () => {
                     />{' '}
                     {hasUserClaimed() ? (
                       <Button
-                        style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', width: '200px', marginLeft: '10px' }}
+                        style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', width: '200px' }}
                         type="button"
                         disabled={claimingPapers}
                         onClick={handleUnclaimPapers}
@@ -425,7 +459,7 @@ const Sort = () => {
                       </Button>
                     ) : (
                       <Button
-                        style={{ backgroundColor: '#28a745', color: 'white', border: 'none', width: '200px', marginLeft: '10px' }}
+                        style={{ backgroundColor: '#28a745', color: 'white', border: 'none', width: '200px' }}
                         type="button"
                         disabled={claimingPapers}
                         onClick={handleClaimPapers}
