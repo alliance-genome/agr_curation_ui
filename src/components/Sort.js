@@ -222,14 +222,22 @@ const Sort = () => {
   // Extract unique claimer emails from referencesToSortLive
   const getUniqueClaimers = () => {
     if (!referencesToSortLive) return [];
+
     const claimersSet = new Set();
     referencesToSortLive.forEach(ref => {
       if (ref.claimed_by) {
         claimersSet.add(ref.claimed_by);
       }
     });
-    return Array.from(claimersSet);
-  }
+
+    let claimers = Array.from(claimersSet);
+
+    // If userId is in the claimers, move them to the top
+    if (userId && claimers.includes(userId)) {
+      claimers = [userId, ...claimers.filter(claimer => claimer !== userId)];
+    }
+    return claimers;
+  };
 
   // Determine if the current user has already claimed any papers
   const hasUserClaimed = () => {
@@ -310,23 +318,25 @@ const Sort = () => {
               <Row>
                 <Col lg={12} className="d-flex justify-content-between align-items-center">
                   <div>
-                    {/* New Dropdown for Claimers */}
-                    <Form.Group controlId="formClaimerSelect" className="mb-0">
-                      <Form.Label style={{ fontWeight: 'bold' }}>Show Papers Claimed By:</Form.Label>
-                      <Form.Control
-                        as="select"
-                        style={{ minWidth: '200px' }}
-                        value={selectedCurator}
-                        onChange={(e) => setSelectedCurator(e.target.value)}
-                      >
-                        <option value="unclaimed">Unclaimed Papers</option>
-                        {getUniqueClaimers().map((claimer, index) => (
-                          <option key={index} value={claimer}>
-                            {claimer}
-                          </option>
-                        ))}
-                      </Form.Control>
-                    </Form.Group>
+                    {/* Conditionally render the dropdown only if there are claimed papers */}
+                    {getUniqueClaimers().length > 0 && (
+                      <Form.Group controlId="formClaimerSelect" className="mb-0">
+                        <Form.Label style={{ fontWeight: 'bold' }}>Show Papers Claimed By:</Form.Label>
+                        <Form.Control
+                          as="select"
+                          style={{ minWidth: '200px' }}
+                          value={selectedCurator}
+                          onChange={(e) => setSelectedCurator(e.target.value)}
+                        >
+                          {getUniqueClaimers().map((claimer, index) => (
+                            <option key={index} value={claimer}>
+                              {claimer}
+                            </option>
+                          ))}
+			  <option value="unclaimed">Unclaimed Papers</option> 
+                        </Form.Control>
+                      </Form.Group>
+                    )}
                   </div>
                   <div>
                     {/* "Update Sorting" and "Claim Papers" Buttons */}
