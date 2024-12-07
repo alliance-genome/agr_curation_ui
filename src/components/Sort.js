@@ -46,7 +46,12 @@ const Sort = () => {
   const [topicEntitySourceId, setTopicEntitySourceId] = useState(undefined);
 
   const [viewMode, setViewMode] = useState('Sort'); // 'Sort', 'Prepublication', or 'Recently sorted'
-  const [selectedCurator, setSelectedCurator] = useState('unclaimed'); // Default to 'unclaimed'
+  
+  // **New State Variables for Independent Controls**
+  const [selectedSortCurator, setSelectedSortCurator] = useState('unclaimed');
+  const [selectedRecentCurator, setSelectedRecentCurator] = useState(uid);
+  const [recentCuratorOptions, setRecentCuratorOptions] = useState([]);
+  
   const [selectedTimeframe, setSelectedTimeframe] = useState('1');
   const [curatorOptions, setCuratorOptions] = useState([]);
   const [recentlySortedData, setRecentlySortedData] = useState([]);
@@ -86,12 +91,15 @@ const Sort = () => {
   // Fetch recently sorted papers and curator options when viewMode changes to 'Recently sorted'
   useEffect(() => {
     if (viewMode === 'Recently sorted' && accessToken && accessLevel) {    
-      fetchRecentlySortedPapers(accessLevel, selectedTimeframe, selectedCurator);
+      fetchRecentlySortedPapers(accessLevel, selectedTimeframe, selectedRecentCurator);
       setShowInsidePapers(true); 
     }
-  }, [viewMode, accessToken, accessLevel, selectedTimeframe, selectedCurator]);
+  }, [viewMode, accessToken, accessLevel, selectedTimeframe, selectedRecentCurator]);
 
   const fetchRecentlySortedPapers = async (modAbbreviation, day, curatorUid) => {
+    if (curatorUid === 'unclaimed' || curatorUid === null) {
+	curatorUid = uid
+    }
     const url = `${process.env.REACT_APP_RESTAPI}/sort/recently_sorted?mod_abbreviation=${encodeURIComponent(modAbbreviation)}&day=${encodeURIComponent(day)}&curator=${encodeURIComponent(curatorUid)}`;
 
     try {
@@ -121,11 +129,12 @@ const Sort = () => {
         }
       }
 
-      setCuratorOptions(curators);
+      setRecentCuratorOptions(curators);
       setRecentlySortedData(references);
 
-      if (!curators.some(curator => curator.uid === selectedCurator) && references.some(ref => ref.claimed_by === null)) {
-        setSelectedCurator('unclaimed');
+      // **Update 'selectedRecentCurator' Instead of 'selectedCurator'**
+      if (!curators.some(curator => curator.uid === selectedRecentCurator) && references.some(ref => ref.claimed_by === null)) {
+        setSelectedRecentCurator('unclaimed');
       }
     } catch (error) {
       console.error('Error fetching recently sorted papers:', error);
@@ -134,12 +143,12 @@ const Sort = () => {
 
   // Handler for 'Find sorted papers' button
   const handleFindSortedPapers = () => {
-    let curator = selectedCurator;
+    let curator = selectedRecentCurator;
     console.log(`Selected Curator Before Check: ${curator}`);
     if (curator === null || curator === undefined) {
       curator = 'unclaimed';
       console.log("Reset curator to 'unclaimed':", curator);
-      setSelectedCurator('unclaimed'); // Update state for future use
+      setSelectedRecentCurator('unclaimed'); // Update state for future use
     }
     console.log(`Fetching papers with curator: ${curator}`);
     fetchRecentlySortedPapers(accessLevel, selectedTimeframe, curator);
@@ -222,8 +231,8 @@ const Sort = () => {
       // Fetch the updated list of claimed papers
       await dispatch(sortButtonModsQuery(accessLevel, 'needs_review', userId, null));
       
-      // Set the selectedCurator to userId to display user's claimed papers
-      setSelectedCurator(userId);
+      // Set the selectedSortCurator to userId to display user's claimed papers
+      setSelectedSortCurator(userId);
       
     } catch (error) {
       console.error('Error claiming papers:', error);
@@ -243,8 +252,8 @@ const Sort = () => {
       // Fetch the updated list of unclaimed papers
       await dispatch(sortButtonModsQuery(accessLevel, 'needs_review', 'unclaimed', null));
       
-      // Set the selectedCurator to 'unclaimed' to display unclaimed papers
-      setSelectedCurator('unclaimed');
+      // Set the selectedSortCurator to 'unclaimed' to display unclaimed papers
+      setSelectedSortCurator('unclaimed');
       
     } catch (error) {
       console.error('Error unclaiming papers:', error);
@@ -280,10 +289,17 @@ const Sort = () => {
   // Filter papers based on selected curator
   const filteredPapers = () => {
     if (!referencesToSortLive) return [];
-    if (selectedCurator === 'unclaimed') {
-      return referencesToSortLive.filter(ref => ref.claimed_by === null);
+    if (viewMode === 'Sort') {
+      if (selectedSortCurator === 'unclaimed') {
+        return referencesToSortLive.filter(ref => ref.claimed_by === null);
+      } else {
+        return referencesToSortLive.filter(ref => ref.claimed_by === selectedSortCurator);
+      }
+    } else if (viewMode === 'Prepublication') {
+      // Implement similar filtering if needed
+      return referencesToSortLive; // Placeholder
     } else {
-      return referencesToSortLive.filter(ref => ref.claimed_by === selectedCurator);
+      return [];
     }
   }
 
@@ -348,32 +364,32 @@ const Sort = () => {
             <RowDivider />
             {referencesToSortLive && referencesToSortLive.length > 0 &&
               <>
-                <Row>
-
-  <Col lg={3} md={4} sm={6} className="mx-auto"> {/* Center the column and set responsive widths */}
-    {/* Dropdown for selecting claimer */}
-    {getUniqueClaimers().length > 0 && (
-      <Form.Group controlId="formClaimerSelect" className="mb-3">
-        <Form.Label style={{ fontWeight: 'bold' }}>Show Papers Claimed By:</Form.Label>
-        <Form.Control
-          as="select"
-          value={selectedCurator}
-          onChange={(e) => setSelectedCurator(e.target.value)}
-          style={{ width: '100%' }} // Make the select take full width of the column
-        >
-          {getUniqueClaimers().map((claimer, index) => (
-            <option key={index} value={claimer}>
-              {claimer}
-            </option>
-          ))}
-          <option value="unclaimed">Unclaimed Papers</option> 
-        </Form.Control>
-      </Form.Group>
-    )}
-  </Col>
-
-		      
+                {/* **Separate Row for Claimer Dropdown** */}
+                <Row className="justify-content-center">
+                  <Col md={3} sm={6} xs={12}>
+                    {/* Dropdown for selecting claimer */}
+                    {getUniqueClaimers().length > 0 && (
+                      <Form.Group controlId="formClaimerSelect" className="mb-3">
+                        <Form.Label style={{ fontWeight: 'bold' }}>Show Papers Claimed By:</Form.Label>
+                        <Form.Control
+                          as="select"
+                          value={selectedSortCurator}
+                          onChange={(e) => setSelectedSortCurator(e.target.value)}
+                          style={{ width: '100%' }} // Make the select take full width of the column
+                        >
+                          {getUniqueClaimers().map((claimer, index) => (
+                            <option key={index} value={claimer}>
+                              {claimer}
+                            </option>
+                          ))}
+                          <option value="unclaimed">Unclaimed Papers</option> 
+                        </Form.Control>
+                      </Form.Group>
+                    )}
+                  </Col>
                 </Row>
+                
+                {/* **Separate Row for Buttons** */}
                 <Row>
                   <Col lg={12} className="d-flex justify-content-center align-items-center">
                     {/* "Update Sorting" and "Claim/Unclaim Papers" Buttons */}
@@ -482,15 +498,15 @@ const Sort = () => {
                 <Form>
                   <Form.Row className="align-items-end">
                     <Col md={5}>
-                      <Form.Group controlId="formCuratorSelect">
+                      <Form.Group controlId="formRecentCuratorSelect">
                         <Form.Label style={{ fontWeight: 'bold' }}>Who:</Form.Label>
                         <Form.Control
                           as="select"
+                          value={selectedRecentCurator}
+                          onChange={(e) => setSelectedRecentCurator(e.target.value)}
                           style={{ minWidth: '250px' }}
-                          value={selectedCurator}
-                          onChange={(e) => setSelectedCurator(e.target.value)}
                         >
-                          {curatorOptions.map((curator, index) => (
+                          {recentCuratorOptions.map((curator, index) => (
                             <option key={index} value={curator.uid}>
                               {curator.email}
                             </option>
