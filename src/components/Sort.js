@@ -47,7 +47,6 @@ const Sort = () => {
 
   const [viewMode, setViewMode] = useState('Sort'); // 'Sort', 'Prepublication', or 'Recently sorted'
   
-  // **New State Variables for Independent Controls**
   const [selectedSortCurator, setSelectedSortCurator] = useState('unclaimed');
   const [selectedRecentCurator, setSelectedRecentCurator] = useState(uid);
   const [recentCuratorOptions, setRecentCuratorOptions] = useState([]);
@@ -132,9 +131,8 @@ const Sort = () => {
       setRecentCuratorOptions(curators);
       setRecentlySortedData(references);
 
-      // **Update 'selectedRecentCurator' Instead of 'selectedCurator'**
       if (!curators.some(curator => curator.uid === selectedRecentCurator) && references.some(ref => ref.claimed_by === null)) {
-        setSelectedRecentCurator('unclaimed');
+        setSelectedRecentCurator(uid);
       }
     } catch (error) {
       console.error('Error fetching recently sorted papers:', error);
@@ -146,9 +144,8 @@ const Sort = () => {
     let curator = selectedRecentCurator;
     console.log(`Selected Curator Before Check: ${curator}`);
     if (curator === null || curator === undefined) {
-      curator = 'unclaimed';
-      console.log("Reset curator to 'unclaimed':", curator);
-      setSelectedRecentCurator('unclaimed'); // Update state for future use
+      curator = uid;
+      setSelectedRecentCurator(uid); // Update state for future use
     }
     console.log(`Fetching papers with curator: ${curator}`);
     fetchRecentlySortedPapers(accessLevel, selectedTimeframe, curator);
@@ -227,10 +224,7 @@ const Sort = () => {
     try {
       // Dispatch the claim action
       await dispatch(sortButtonModsQuery(accessLevel, 'needs_review', userId, 'claim'));
-      
-      // Fetch the updated list of claimed papers
-      await dispatch(sortButtonModsQuery(accessLevel, 'needs_review', userId, null));
-      
+        
       // Set the selectedSortCurator to userId to display user's claimed papers
       setSelectedSortCurator(userId);
       
@@ -248,10 +242,7 @@ const Sort = () => {
     try {
       // Dispatch the unclaim action
       await dispatch(sortButtonModsQuery(accessLevel, 'needs_review', userId, 'unclaim'));
-      
-      // Fetch the updated list of unclaimed papers
-      await dispatch(sortButtonModsQuery(accessLevel, 'needs_review', 'unclaimed', null));
-      
+        
       // Set the selectedSortCurator to 'unclaimed' to display unclaimed papers
       setSelectedSortCurator('unclaimed');
       
@@ -458,7 +449,7 @@ const Sort = () => {
                     <SortSubmitUpdateRouter />
                     <Button
                       as="input"
-                      style={{ backgroundColor: '#6b9ef3', color: 'white', border: 'none', width: '200px', marginRight: '10px' }} // Set width and margin
+                      style={{ backgroundColor: '#6b9ef3', color: 'white', border: 'none', width: '200px', marginRight: '10px' }}
                       type="button"
                       disabled={buttonUpdateDisabled}
                       value="Update Sorting"
@@ -504,7 +495,7 @@ const Sort = () => {
                           as="select"
                           value={selectedRecentCurator}
                           onChange={(e) => setSelectedRecentCurator(e.target.value)}
-                          style={{ minWidth: '250px' }}
+                          style={{ minWidth: '220px' }}
                         >
                           {recentCuratorOptions.map((curator, index) => (
                             <option key={index} value={curator.uid}>
@@ -514,7 +505,7 @@ const Sort = () => {
                         </Form.Control>
                       </Form.Group>
                     </Col>
-                    <Col md={3}>
+                      <Col md={3}>
                       <Form.Group controlId="formTimeframeSelect">
                         <Form.Label style={{ fontWeight: 'bold' }}>When:</Form.Label>
                         <Form.Control
