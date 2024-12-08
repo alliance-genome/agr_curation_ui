@@ -97,7 +97,7 @@ const Sort = () => {
 
   const fetchRecentlySortedPapers = async (modAbbreviation, day, curatorUid) => {
     if (curatorUid === 'unclaimed' || curatorUid === null) {
-	curatorUid = uid
+      curatorUid = uid
     }
     const url = `${process.env.REACT_APP_RESTAPI}/sort/recently_sorted?mod_abbreviation=${encodeURIComponent(modAbbreviation)}&day=${encodeURIComponent(day)}&curator=${encodeURIComponent(curatorUid)}`;
 
@@ -355,7 +355,7 @@ const Sort = () => {
             <RowDivider />
             {referencesToSortLive && referencesToSortLive.length > 0 &&
               <>
-                {/* **Separate Row for Claimer Dropdown** */}
+                {/* Separate Row for Claimer Dropdown */}
                 <Row className="justify-content-center">
                   <Col md={3} sm={6} xs={12}>
                     {/* Dropdown for selecting claimer */}
@@ -380,11 +380,16 @@ const Sort = () => {
                   </Col>
                 </Row>
                 
+                {/* **New Row for Status Messages** */}
+                <Row className="justify-content-center">
+                  <Col lg={12} className="mb-3">
+                    <SortSubmitUpdateRouter />
+                  </Col>
+                </Row>
+                
                 {/* **Separate Row for Buttons** */}
                 <Row>
                   <Col lg={12} className="d-flex justify-content-center align-items-center">
-                    {/* "Update Sorting" and "Claim/Unclaim Papers" Buttons */}
-                    <SortSubmitUpdateRouter />
                     <Button
                       as="input"
                       style={{ backgroundColor: '#6b9ef3', color: 'white', border: 'none', width: '200px', marginRight: '10px' }} // Set width and margin
