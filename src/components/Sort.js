@@ -294,6 +294,13 @@ const Sort = () => {
     }
   }
 
+  // Function to get curator's email based on UID
+  const getCuratorEmail = (uid) => {
+    // Attempt to find the curator in recentCuratorOptions or curatorOptions
+    const curator = recentCuratorOptions.find(c => c.uid === uid) || curatorOptions.find(c => c.uid === uid);
+    return curator ? curator.email : uid; // Removed "User" prefix
+  }
+
   return (
     <div>
       <h3>References for {accessLevel}</h3>
@@ -370,7 +377,7 @@ const Sort = () => {
                         >
                           {getUniqueClaimers().map((claimer, index) => (
                             <option key={index} value={claimer}>
-                              {claimer}
+                              {getCuratorEmail(claimer)}
                             </option>
                           ))}
                           <option value="unclaimed">Unclaimed Papers</option> 
@@ -379,7 +386,7 @@ const Sort = () => {
                     )}
                   </Col>
                 </Row>
-                
+                                
                 {/* **New Row for Status Messages** */}
                 <Row className="justify-content-center">
                   <Col lg={12} className="mb-3">
@@ -421,6 +428,26 @@ const Sort = () => {
                 </Row>
               </>
             }
+
+
+            {/* **New Row for Subtitle** */}
+            <div style={{ display: 'block', textAlign: 'left' }}>
+              {selectedSortCurator === 'unclaimed' ? (
+                <h4>Unclaimed Papers</h4>
+              ) : selectedSortCurator === uid ? (
+                <h4>Your Claimed Papers</h4>
+              ) : (
+                <div>
+                  <h4>The Papers Claimed by {getCuratorEmail(selectedSortCurator)}</h4>
+                    <small style={{ fontSize: '0.85em', color: '#6c757d' }}>
+                      {getCuratorEmail(selectedSortCurator)} may be currently sorting this set of papers, so please do not sort them unless necessary.
+                    </small>
+                </div>
+              )}
+            </div>
+
+	      
+	      
             {referencesToSortLive && referencesToSortLive.length === 0 && (
               <div>
                 <br />
