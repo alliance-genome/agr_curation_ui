@@ -21,7 +21,6 @@ import PropTypes from 'prop-types';
 const RowDivider = () => { return (<Row><Col>&nbsp;</Col></Row>); }
 
 const Sort = () => {
-  // Selectors
   const referencesToSortLive = useSelector(state => state.sort.referencesToSortLive);
   const accessToken = useSelector(state => state.isLogged.accessToken);
   const sortType = useSelector(state => state.sort.sortType);
@@ -32,8 +31,6 @@ const Sort = () => {
   const testerMod = useSelector(state => state.isLogged.testerMod);
   const uid = useSelector(state => state.isLogged.uid);
   const userId = useSelector(state => state.isLogged.userId);
-
-  // Selectors for claim papers
   const claimingPapers = useSelector(state => state.sort.claimingPapers);
   const claimPapersError = useSelector(state => state.sort.claimPapersError);
 
@@ -46,7 +43,6 @@ const Sort = () => {
   const [topicEntitySourceId, setTopicEntitySourceId] = useState(undefined);
 
   const [viewMode, setViewMode] = useState('Sort'); // 'Sort', 'Prepublication', or 'Recently sorted'
-  
   const [selectedSortCurator, setSelectedSortCurator] = useState('unclaimed');
   const [selectedRecentCurator, setSelectedRecentCurator] = useState(uid);
   const [recentCuratorOptions, setRecentCuratorOptions] = useState([]);
@@ -145,7 +141,7 @@ const Sort = () => {
     console.log(`Selected Curator Before Check: ${curator}`);
     if (curator === null || curator === undefined) {
       curator = uid;
-      setSelectedRecentCurator(uid); // Update state for future use
+      setSelectedRecentCurator(uid);
     }
     console.log(`Fetching papers with curator: ${curator}`);
     fetchRecentlySortedPapers(accessLevel, selectedTimeframe, curator);
@@ -222,12 +218,8 @@ const Sort = () => {
       return;
     }
     try {
-      // Dispatch the claim action
       await dispatch(sortButtonModsQuery(accessLevel, 'needs_review', userId, 'claim'));
-        
-      // Set the selectedSortCurator to userId to display user's claimed papers
       setSelectedSortCurator(userId);
-      
     } catch (error) {
       console.error('Error claiming papers:', error);
     }
@@ -240,12 +232,8 @@ const Sort = () => {
       return;
     }
     try {
-      // Dispatch the unclaim action
       await dispatch(sortButtonModsQuery(accessLevel, 'needs_review', userId, 'unclaim'));
-        
-      // Set the selectedSortCurator to 'unclaimed' to display unclaimed papers
       setSelectedSortCurator('unclaimed');
-      
     } catch (error) {
       console.error('Error unclaiming papers:', error);
     }
@@ -261,23 +249,18 @@ const Sort = () => {
         claimersSet.add(ref.claimed_by);
       }
     });
-
     let claimers = Array.from(claimersSet);
-
-    // If userId is in the claimers, move them to the top
     if (userId && claimers.includes(userId)) {
       claimers = [userId, ...claimers.filter(claimer => claimer !== userId)];
     }
     return claimers;
   };
 
-  // Determine if the current user has already claimed any papers
   const hasUserClaimed = () => {
     if (!referencesToSortLive) return false;
     return referencesToSortLive.some(ref => ref.claimed_by === userId);
   }
 
-  // Filter papers based on selected curator
   const filteredPapers = () => {
     if (!referencesToSortLive) return [];
     if (viewMode === 'Sort') {
@@ -287,18 +270,23 @@ const Sort = () => {
         return referencesToSortLive.filter(ref => ref.claimed_by === selectedSortCurator);
       }
     } else if (viewMode === 'Prepublication') {
-      // Implement similar filtering if needed
-      return referencesToSortLive; // Placeholder
+      return referencesToSortLive;
     } else {
       return [];
     }
   }
 
-  // Function to get curator's email based on UID
+  useEffect(() => {
+    if (hasUserClaimed()) {
+      setSelectedSortCurator(userId);
+    } else {
+      setSelectedSortCurator('unclaimed');
+    }
+  }, [referencesToSortLive, userId]);
+      
   const getCuratorEmail = (uid) => {
-    // Attempt to find the curator in recentCuratorOptions or curatorOptions
     const curator = recentCuratorOptions.find(c => c.uid === uid) || curatorOptions.find(c => c.uid === uid);
-    return curator ? curator.email : uid; // Removed "User" prefix
+    return curator ? curator.email : uid;
   }
 
   return (
@@ -321,7 +309,6 @@ const Sort = () => {
           <Form.Check.Label style={{ fontSize: '1.1em' }}>Sort</Form.Check.Label>
         </Form.Check>
 
-        {/* Conditionally render 'Prepublication' radio button if activeMod is 'WB' */}
         {activeMod === 'WB' && (
           <Form.Check
             inline
@@ -362,10 +349,8 @@ const Sort = () => {
             <RowDivider />
             {referencesToSortLive && referencesToSortLive.length > 0 &&
               <>
-                {/* Separate Row for Claimer Dropdown */}
                 <Row className="justify-content-center">
                   <Col md={3} sm={6} xs={12}>
-                    {/* Dropdown for selecting claimer */}
                     {getUniqueClaimers().length > 0 && (
                       <Form.Group controlId="formClaimerSelect" className="mb-3">
                         <Form.Label style={{ fontWeight: 'bold' }}>Show Papers Claimed By:</Form.Label>
@@ -386,20 +371,18 @@ const Sort = () => {
                     )}
                   </Col>
                 </Row>
-                                
-                {/* **New Row for Status Messages** */}
+                        
                 <Row className="justify-content-center">
                   <Col lg={12} className="mb-3">
                     <SortSubmitUpdateRouter />
                   </Col>
                 </Row>
                 
-                {/* **Separate Row for Buttons** */}
                 <Row>
                   <Col lg={12} className="d-flex justify-content-center align-items-center">
                     <Button
                       as="input"
-                      style={{ backgroundColor: '#6b9ef3', color: 'white', border: 'none', width: '200px', marginRight: '10px' }} // Set width and margin
+                      style={{ backgroundColor: '#6b9ef3', color: 'white', border: 'none', width: '200px', marginRight: '10px' }} 
                       type="button"
                       disabled={buttonUpdateDisabled}
                       value="Update Sorting"
@@ -428,26 +411,22 @@ const Sort = () => {
                 </Row>
               </>
             }
-
-
-            {/* **New Row for Subtitle** */}
-            <div style={{ display: 'block', textAlign: 'left' }}>
+	   
+            <div style={{ display: 'block', textAlign: 'left', marginBottom: '-1.2rem' }}>
               {selectedSortCurator === 'unclaimed' ? (
-                <h4>Unclaimed Papers</h4>
-              ) : selectedSortCurator === uid ? (
-                <h4>Your Claimed Papers</h4>
+                <h5>Unclaimed Papers</h5>
+              ) : selectedSortCurator === userId ? (
+                <h5>Your Claimed Papers</h5>
               ) : (
                 <div>
-                  <h4>The Papers Claimed by {getCuratorEmail(selectedSortCurator)}</h4>
-                    <small style={{ fontSize: '0.85em', color: '#6c757d' }}>
-                      {getCuratorEmail(selectedSortCurator)} may be currently sorting this set of papers, so please do not sort them unless necessary.
-                    </small>
-                </div>
+                  <h5>The Papers Claimed by {getCuratorEmail(selectedSortCurator)}</h5>
+                  <small style={{ fontSize: '0.85em', color: '#6c757d' }}>
+                    {getCuratorEmail(selectedSortCurator)} may be currently sorting this set of papers, so please do not sort them unless necessary.
+                  </small>
+               </div>
               )}
             </div>
-
-	      
-	      
+  
             {referencesToSortLive && referencesToSortLive.length === 0 && (
               <div>
                 <br />
